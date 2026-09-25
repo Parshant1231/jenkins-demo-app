@@ -7,6 +7,12 @@ pipeline {
 	   sh 'npm ci'
 	  }
 	}
+
+	stage ('Lint'){
+	  steps {
+	    sh 'npm run lint'
+	  }
+	}
 	
 	stage('Run Tests'){
 	  steps {
