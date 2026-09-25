@@ -1,7 +1,24 @@
 pipeline {
     agent any
 
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+        NODE_ENV = 'ci'
+    }
+
+
     stages {
+
+        stage('Environment Information') {
+            steps {
+                echo "Application: ${APP_NAME}"
+                echo "Environment: ${NODE_ENV}"
+                echo "Job: ${JOB_NAME}"
+                echo "Build Number: ${BUILD_NUMBER}"
+                echo "Workspace: ${WORKSPACE}"
+            }
+        }
+
 
         stage('Install Dependencies') {
             steps {
