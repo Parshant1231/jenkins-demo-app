@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+Jenkinsfile
+test
+coverage
+dist
+eslint.config.js
+eslint.config.mjs
+
