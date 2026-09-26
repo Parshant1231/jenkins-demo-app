@@ -21,62 +21,77 @@ pipeline {
 
         stage('Environment Information') {
             steps {
+                echo "======================================"
+                echo "Environment Information"
+                echo "======================================"
                 echo "Application: ${APP_NAME}"
                 echo "Environment: ${NODE_ENV}"
                 echo "Deployment Environment: ${params.DEPLOY_ENV}"
+                echo "Job: ${JOB_NAME}"
                 echo "Build Number: ${BUILD_NUMBER}"
                 echo "Workspace: ${WORKSPACE}"
+                echo "======================================"
             }
         }
 
         stage('Install Dependencies') {
             steps {
+                echo "Installing dependencies..."
                 sh 'npm ci'
             }
         }
 
         stage('Lint') {
             steps {
+                echo "Running ESLint..."
                 sh 'npm run lint'
             }
         }
 
         stage('Test') {
             steps {
+                echo "Running tests..."
                 sh 'npm test'
             }
         }
 
         stage('Build') {
             steps {
+                echo "Building application..."
                 sh 'npm run build'
             }
         }
 
         stage('Docker Build') {
             steps {
+                echo "Building Docker image..."
+
                 sh '''
                     docker build \
-                      -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
-                      -t ${DOCKER_IMAGE}:latest \
-                      .
+                        -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                        -t ${DOCKER_IMAGE}:latest \
+                        .
                 '''
             }
         }
 
         stage('Docker Login') {
             steps {
+                echo "Logging in to Docker Hub..."
+
                 sh '''
                     echo "$DOCKER_CREDENTIALS_PSW" | \
                     docker login \
-                      -u "$DOCKER_CREDENTIALS_USR" \
-                      --password-stdin
+                        -u "$DOCKER_CREDENTIALS_USR" \
+                        --password-stdin
                 '''
             }
         }
 
         stage('Docker Push') {
             steps {
+                echo "Pushing Docker images..."
+
                 sh '''
                     docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
                     docker push ${DOCKER_IMAGE}:latest
@@ -84,94 +99,86 @@ pipeline {
             }
         }
 
-<<<<<<< HEAD
-		stage('Deploy') {
-		    steps {
-			sh '''
-			    echo "Pulling latest Docker image..."
-			    docker pull ${DOCKER_IMAGE}:latest
-	
-			    echo "Stopping old container..."
-			    docker stop jenkins-demo-app || true
-	
-			    echo "Removing old container..."
-			    docker rm jenkins-demo-app || true
-	
-			    echo "Starting new container..."
-			    docker run -d \
-			        --name jenkins-demo-app \
-			        -p 3000:3000 \
-			        ${DOCKER_IMAGE}:latest
-	
-			    echo "Deployment completed!"
-			'''
-		    }
-		}
-=======
-	stage('Deploy') {
-			    steps {
-		sh '''
-		    set -e
- 
-		    IMAGE="${DOCKER_IMAGE}:${BUILD_NUMBER}"
+        stage('Deploy') {
+            steps {
+                sh '''
+                    set -e
 
-                    echo "Deploying image: $IMAGE"
+                    IMAGE="${DOCKER_IMAGE}:${BUILD_NUMBER}"
 
-		    docker pull $IMAGE
+                    echo "======================================"
+                    echo "Deploying: $IMAGE"
+                    echo "======================================"
 
-		    echo "Stopping old container..."
-		    docker stop jenkins-demo-app || true
+                    echo "Pulling Docker image..."
+                    docker pull "$IMAGE"
 
-		    echo "Removing old container..."
-		    docker rm jenkins-demo-app || true
+                    echo "Stopping old container..."
+                    docker stop jenkins-demo-app || true
 
-		    echo "Starting new container..."
-		    docker run -d \
-		        --name jenkins-demo-app \
-		        -p 3000:3000 \
-		        ${DOCKER_IMAGE}:latest
+                    echo "Removing old container..."
+                    docker rm jenkins-demo-app || true
 
-		    echo "Deployment completed!"
-		'''
-	    }
-	}
->>>>>>> 12e26e3 (Deploy versioned Docker image with health check)
+                    echo "Starting new container..."
 
-	stage('Health Check') {
-	    steps {
-		sh '''
-		    echo "Waiting for application..."
-		    sleep 5
+                    docker run -d \
+                        --name jenkins-demo-app \
+                        -p 3000:3000 \
+                        "$IMAGE"
 
-		    echo "Checking application health..."
+                    echo "Deployment completed!"
+                '''
+            }
+        }
 
-		    curl --fail http://localhost:3000/health
+        stage('Health Check') {
+            steps {
+                sh '''
+                    echo "Waiting for application to start..."
+                    sleep 5
 
-		    echo ""
-		    echo "Application is healthy!"
-		'''
-	    }
-	}
+                    echo "Checking application health..."
+
+                    curl --fail http://localhost:3000/health
+
+                    echo ""
+                    echo "Application is healthy!"
+                '''
+            }
+        }
 
         stage('Archive Artifact') {
             steps {
-                archiveArtifacts artifacts: 'dist/**', fingerprint: true
+                archiveArtifacts(
+                    artifacts: 'dist/**',
+                    fingerprint: true
+                )
             }
         }
     }
 
     post {
+
         success {
-            echo 'CI + CD  Docker pipeline completed successfully!'
+            echo "======================================"
+            echo "CI + CD PIPELINE SUCCESSFUL"
+            echo "======================================"
+            echo "Application: ${APP_NAME}"
+            echo "Environment: ${params.DEPLOY_ENV}"
+            echo "Docker Image: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+            echo "======================================"
         }
 
         failure {
-            echo 'Pipeline failed. Check the logs.'
+            echo "======================================"
+            echo "PIPELINE FAILED"
+            echo "Check the Jenkins console logs."
+            echo "======================================"
         }
 
         always {
             sh 'docker logout || true'
-            echo 'Pipeline execution finished.'
+            echo "Pipeline execution finished."
         }
     }
 }
