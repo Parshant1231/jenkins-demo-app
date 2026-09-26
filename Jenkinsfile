@@ -84,28 +84,28 @@ pipeline {
             }
         }
 
-	stage('Deploy') {
-	    steps {
-		sh '''
-		    echo "Pulling latest Docker image..."
-		    docker pull ${DOCKER_IMAGE}:latest
-
-		    echo "Stopping old container..."
-		    docker stop jenkins-demo-app || true
-
-		    echo "Removing old container..."
-		    docker rm jenkins-demo-app || true
-
-		    echo "Starting new container..."
-		    docker run -d \
-		        --name jenkins-demo-app \
-		        -p 3000:3000 \
-		        ${DOCKER_IMAGE}:latest
-
-		    echo "Deployment completed!"
-		'''
-	    }
-	}
+		stage('Deploy') {
+		    steps {
+			sh '''
+			    echo "Pulling latest Docker image..."
+			    docker pull ${DOCKER_IMAGE}:latest
+	
+			    echo "Stopping old container..."
+			    docker stop jenkins-demo-app || true
+	
+			    echo "Removing old container..."
+			    docker rm jenkins-demo-app || true
+	
+			    echo "Starting new container..."
+			    docker run -d \
+			        --name jenkins-demo-app \
+			        -p 3000:3000 \
+			        ${DOCKER_IMAGE}:latest
+	
+			    echo "Deployment completed!"
+			'''
+		    }
+		}
 
         stage('Archive Artifact') {
             steps {
