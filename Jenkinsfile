@@ -9,56 +9,25 @@ pipeline {
         )
     }
 
-
     environment {
         APP_NAME = 'jenkins-demo-app'
         NODE_ENV = 'ci'
 
-        DOCKER_CREDS = credentials('dockerhub-credentials')
+        DOCKER_IMAGE = 'kanvit279/jenkins-demo-app'
+        DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
     }
 
-
     stages {
-
-	stage('Credential Test') {
-	   steps {
-	        sh '''
-		   if [ -n "$DOCKER_CREDS_USR" ]; then
-                     echo "Docker username credential is available"
-            	   else
-                	echo "Docker username credential is missing"
-                        exit 1
-            	   fi
-
-            	   if [ -n "$DOCKER_CREDS_PSW" ]; then
-                	echo "Docker secret is available"
-           	   else 
-                	echo "Docker secret is missing"
-                	exit 1
-            	   fi
-        	'''
-    		}
-	}
-        
-	
-	
-	stage('Show Parameters') {
-	   steps {
-	     echo "Selected environment: ${params.DEPLOY_ENV}"
-	   }
-	}
-
 
         stage('Environment Information') {
             steps {
                 echo "Application: ${APP_NAME}"
                 echo "Environment: ${NODE_ENV}"
-                echo "Job: ${JOB_NAME}"
+                echo "Deployment Environment: ${params.DEPLOY_ENV}"
                 echo "Build Number: ${BUILD_NUMBER}"
                 echo "Workspace: ${WORKSPACE}"
             }
         }
-
 
         stage('Install Dependencies') {
             steps {
@@ -84,6 +53,37 @@ pipeline {
             }
         }
 
+        stage('Docker Build') {
+            steps {
+                sh '''
+                    docker build \
+                      -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                      -t ${DOCKER_IMAGE}:latest \
+                      .
+                '''
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                sh '''
+                    echo "$DOCKER_CREDENTIALS_PSW" | \
+                    docker login \
+                      -u "$DOCKER_CREDENTIALS_USR" \
+                      --password-stdin
+                '''
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                sh '''
+                    docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    docker push ${DOCKER_IMAGE}:latest
+                '''
+            }
+        }
+
         stage('Archive Artifact') {
             steps {
                 archiveArtifacts artifacts: 'dist/**', fingerprint: true
@@ -93,14 +93,15 @@ pipeline {
 
     post {
         success {
-            echo 'CI Pipeline completed successfully!'
+            echo 'CI + Docker pipeline completed successfully!'
         }
 
         failure {
-            echo 'CI Pipeline failed. Check the logs.'
+            echo 'Pipeline failed. Check the logs.'
         }
 
         always {
+            sh 'docker logout || true'
             echo 'Pipeline execution finished.'
         }
     }
