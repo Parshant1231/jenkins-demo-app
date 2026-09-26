@@ -1,6 +1,15 @@
 pipeline {
     agent any
 
+    parameters {
+        choice(
+            name: 'DEPLOY_ENV',
+            choices: ['development', 'staging', 'production'],
+            description: 'Select the deployment environment'
+        )
+    }
+
+
     environment {
         APP_NAME = 'jenkins-demo-app'
         NODE_ENV = 'ci'
@@ -8,6 +17,13 @@ pipeline {
 
 
     stages {
+
+	stage('Show Parameters') {
+	   steps {
+	     echo "Selected environment: ${params.DEPLOY_ENV}"
+	   }
+	}
+
 
         stage('Environment Information') {
             steps {
