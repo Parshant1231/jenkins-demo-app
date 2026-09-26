@@ -13,11 +13,35 @@ pipeline {
     environment {
         APP_NAME = 'jenkins-demo-app'
         NODE_ENV = 'ci'
+
+        DOCKER_CREDS = credentials('dockerhub-credentials')
     }
 
 
     stages {
 
+	stage('Credential Test') {
+	   steps {
+	        sh '''
+		   if [ -n "$DOCKER_CREDS_USR" ]; then
+                     echo "Docker username credential is available"
+            	   else
+                	echo "Docker username credential is missing"
+                        exit 1
+            	   fi
+
+            	   if [ -n "$DOCKER_CREDS_PSW" ]; then
+                	echo "Docker secret is available"
+           	   else 
+                	echo "Docker secret is missing"
+                	exit 1
+            	   fi
+        	'''
+    		}
+	}
+        
+	
+	
 	stage('Show Parameters') {
 	   steps {
 	     echo "Selected environment: ${params.DEPLOY_ENV}"
