@@ -84,6 +84,7 @@ pipeline {
             }
         }
 
+<<<<<<< HEAD
 		stage('Deploy') {
 		    steps {
 			sh '''
@@ -106,6 +107,51 @@ pipeline {
 			'''
 		    }
 		}
+=======
+	stage('Deploy') {
+			    steps {
+		sh '''
+		    set -e
+ 
+		    IMAGE="${DOCKER_IMAGE}:${BUILD_NUMBER}"
+
+                    echo "Deploying image: $IMAGE"
+
+		    docker pull $IMAGE
+
+		    echo "Stopping old container..."
+		    docker stop jenkins-demo-app || true
+
+		    echo "Removing old container..."
+		    docker rm jenkins-demo-app || true
+
+		    echo "Starting new container..."
+		    docker run -d \
+		        --name jenkins-demo-app \
+		        -p 3000:3000 \
+		        ${DOCKER_IMAGE}:latest
+
+		    echo "Deployment completed!"
+		'''
+	    }
+	}
+>>>>>>> 12e26e3 (Deploy versioned Docker image with health check)
+
+	stage('Health Check') {
+	    steps {
+		sh '''
+		    echo "Waiting for application..."
+		    sleep 5
+
+		    echo "Checking application health..."
+
+		    curl --fail http://localhost:3000/health
+
+		    echo ""
+		    echo "Application is healthy!"
+		'''
+	    }
+	}
 
         stage('Archive Artifact') {
             steps {
@@ -116,7 +162,7 @@ pipeline {
 
     post {
         success {
-            echo 'CI + Docker pipeline completed successfully!'
+            echo 'CI + CD  Docker pipeline completed successfully!'
         }
 
         failure {
