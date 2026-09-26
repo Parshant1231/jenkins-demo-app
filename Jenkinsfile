@@ -2,11 +2,25 @@ pipeline {
     agent any
 
     parameters {
+
+	choice(
+	    name: 'ACTION',
+	    choices: ['deploy', 'rollback'],
+	    description: 'Choose whether to deploy the new build or rollback to a previous build'
+	)
+
         choice(
             name: 'DEPLOY_ENV',
             choices: ['development', 'staging', 'production'],
             description: 'Select the deployment environment'
         )
+
+   	string(
+           name: 'ROLLBACK_VERSION',
+           defaultValue: '19',
+           description: 'Jenkins build number to deploy when ACTION is rollback'
+    	)
+
     }
 
     environment {
@@ -99,37 +113,45 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                sh '''
-                    set -e
+	stage('Deploy') {
+	    steps {
+		sh '''
+		    set -e
 
-                    IMAGE="${DOCKER_IMAGE}:${BUILD_NUMBER}"
+		    if [ "$ACTION" = "rollback" ]; then
+		        IMAGE="${DOCKER_IMAGE}:${ROLLBACK_VERSION}"
+		        echo "======================================"
+		        echo "ROLLBACK DEPLOYMENT"
+		        echo "Deploying: $IMAGE"
+		        echo "======================================"
+		    else
+		        IMAGE="${DOCKER_IMAGE}:${BUILD_NUMBER}"
+		        echo "======================================"
+		        echo "NORMAL DEPLOYMENT"
+		        echo "Deploying: $IMAGE"
+		        echo "======================================"
+		    fi
 
-                    echo "======================================"
-                    echo "Deploying: $IMAGE"
-                    echo "======================================"
+		    docker pull "$IMAGE"
 
-                    echo "Pulling Docker image..."
-                    docker pull "$IMAGE"
+		    echo "Stopping old container..."
+		    docker stop jenkins-demo-app || true
 
-                    echo "Stopping old container..."
-                    docker stop jenkins-demo-app || true
+		    echo "Removing old container..."
+		    docker rm jenkins-demo-app || true
 
-                    echo "Removing old container..."
-                    docker rm jenkins-demo-app || true
+		    echo "Starting container..."
+		    docker run -d \
+		        --name jenkins-demo-app \
+		        -p 3000:3000 \
+		        "$IMAGE"
 
-                    echo "Starting new container..."
+		    echo "Deployment completed!"
+		'''
+	    }
+	}
 
-                    docker run -d \
-                        --name jenkins-demo-app \
-                        -p 3000:3000 \
-                        "$IMAGE"
 
-                    echo "Deployment completed!"
-                '''
-            }
-        }
 
         stage('Health Check') {
             steps {
