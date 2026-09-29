@@ -174,6 +174,42 @@ pipeline {
             }
         }
 
+	stage('Production Approval') {
+	    steps {
+		timeout(time: 10, unit: 'MINUTES') {
+		    input message: 'Deploy this build to production?',
+		          ok: 'Deploy to Production'
+		}
+	    }
+	}
+
+	stage('Production Deploy') {
+	    steps {
+		sh '''
+		    set -e
+
+		    IMAGE="${DOCKER_IMAGE}:${BUILD_NUMBER}"
+
+		    echo "======================================"
+		    echo "PRODUCTION DEPLOYMENT"
+		    echo "Image: $IMAGE"
+		    echo "======================================"
+
+		    docker pull "$IMAGE"
+
+		    docker stop jenkins-demo-app || true
+		    docker rm jenkins-demo-app || true
+
+		    docker run -d \
+		        --name jenkins-demo-app \
+		        -p 3000:3000 \
+		        "$IMAGE"
+
+		    echo "Production deployment completed!"
+		'''
+	    }
+	}
+
         stage('Archive Artifact') {
             steps {
                 archiveArtifacts(
