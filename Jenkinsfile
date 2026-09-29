@@ -57,20 +57,23 @@ pipeline {
             }
         }
 
-        stage('Lint') {
-            steps {
-                echo "Running ESLint..."
-                sh 'npm run lint'
-            }
-        }
+	stage('Quality Checks') {
+		parallel {
+			stage('Lint') {
+			    steps {
+				echo "Running ESLint..."
+				sh 'npm run lint'
+			    }
+			}
 
-        stage('Test') {
-            steps {
-                echo "Running tests..."
-                sh 'npm test'
-            }
-        }
-
+			stage('Test') {
+			    steps {
+				echo "Running tests..."
+				sh 'npm test'
+			    }
+			}
+		}
+	}
         stage('Build') {
             steps {
                 echo "Building application..."
